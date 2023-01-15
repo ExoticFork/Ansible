@@ -1,0 +1,36 @@
+---
+
+- name: Audit Operating System versions
+  hosts: all
+  gather_facts: true
+
+  tasks:
+
+    - name: Set output filename
+      ansible.builtin.set_fact:
+        output_filename: "os_versions_{{ lookup('pipe', 'date +%Y-%m-%d_%H%M%S') }}.csv"
+      run_once: true
+      delegate_to: localhost
+
+    - name: Create output file
+      ansible.builtin.copy:
+        dest: "{{ output_filename }}"
+        content: "Hostname,IP address,Operating System,Version,Kernel Version"
+        mode: 0640
+      delegate_to: localhost
+      run_once: true
+
+    - name: Writing information to output file {{ output_filename }}
+      ansible.builtin.lineinfile:
+        line: "{{ hostvars[item]['ansible_fqdn'] }},{{ hostvars[item]['ansible_default_ipv4'].address }},{{ hostvars[item]['ansible_distribution'] }},{{ hostvars[item]['ansible_distribution_version'] }},{{ hostvars[item]['ansible_kernel'] }}"
+        dest: "{{ output_filename }}"
+        state: present
+      delegate_to: localhost
+      run_once: true
+      with_items: "{{ play_hosts }}"
+
+    - name: Display output filename
+      ansible.builtin.debug:
+        msg: "Output is stored in : {{ output_filename }}"
+      run_once: true
+      delegate_to: localhost
